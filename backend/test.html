@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deepfake Detector — Backend Test</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         margin: 0; background: #0f1220; color: #e8eaf2; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: #9aa0b4; margin: 0 0 24px; font-size: .92rem; }
+  .card { background: #171a2b; border: 1px solid #262a40; border-radius: 14px;
+          padding: 20px; margin-bottom: 20px; }
+  input[type=file] { color: #cfd3e6; }
+  button { background: #5468ff; color: #fff; border: 0; padding: 10px 18px;
+           border-radius: 9px; font-size: .95rem; cursor: pointer; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 640px){ .row { grid-template-columns: 1fr; } }
+  .imgbox { background:#0f1220; border:1px solid #262a40; border-radius:10px;
+            min-height:220px; display:flex; align-items:center; justify-content:center;
+            overflow:hidden; }
+  .imgbox img { width:100%; height:auto; display:block; }
+  .imgbox .ph { color:#6b7190; font-size:.85rem; }
+  .verdict { font-size:1.8rem; font-weight:800; letter-spacing:.5px; margin:6px 0; }
+  .fake { color:#ff5d6c; } .real { color:#3ddc84; }
+  .conf { color:#9aa0b4; font-size:.95rem; }
+  .bar { height:10px; border-radius:6px; background:#262a40; overflow:hidden; margin:4px 0 12px; }
+  .bar > span { display:block; height:100%; }
+  .barlabel { display:flex; justify-content:space-between; font-size:.8rem; color:#b7bcd4; }
+  .status { font-size:.85rem; color:#9aa0b4; margin-top:10px; min-height:1.2em; }
+  label.lbl { font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; color:#8a90a8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔍 Deepfake Detector — Backend Test</h1>
+  <p class="sub">Hybrid model (ConvNeXt-Tiny + CLIP ViT-L/14) with Grad-CAM. This is a quick
+     local test harness for the API — the real dashboard comes later.</p>
+
+  <div class="card">
+    <input type="file" id="file" accept="image/*">
+    <button id="go" disabled>Analyze</button>
+    <div class="status" id="status">Pick a face image to begin.</div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <label class="lbl">Input</label>
+      <div class="imgbox" id="inbox"><span class="ph">no image</span></div>
+    </div>
+    <div class="card">
+      <label class="lbl">Grad-CAM explanation</label>
+      <div class="imgbox" id="cambox"><span class="ph">result appears here</span></div>
+    </div>
+  </div>
+
+  <div class="card" id="result" hidden>
+    <div class="verdict" id="verdict"></div>
+    <div class="conf" id="conf"></div>
+    <div style="margin-top:14px">
+      <div class="barlabel"><span>fake</span><span id="pf"></span></div>
+      <div class="bar"><span class="fake" id="bf"></span></div>
+      <div class="barlabel"><span>real</span><span id="pr"></span></div>
+      <div class="bar"><span class="real" id="br"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let chosen = null;
+
+$('file').addEventListener('change', e => {
+  chosen = e.target.files[0] || null;
+  $('go').disabled = !chosen;
+  if (chosen) {
+    $('inbox').innerHTML = '';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(chosen);
+    $('inbox').appendChild(img);
+    $('status').textContent = 'Ready. Click Analyze.';
+    $('result').hidden = true;
+    $('cambox').innerHTML = '<span class="ph">result appears here</span>';
+  }
+});
+
+$('go').addEventListener('click', async () => {
+  if (!chosen) return;
+  $('go').disabled = true;
+  $('status').textContent = 'Analyzing…';
+  const fd = new FormData();
+  fd.append('file', chosen);
+  try {
+    const r = await fetch('/predict', { method: 'POST', body: fd });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const v = d.verdict, conf = (d.confidence * 100).toFixed(1);
+    $('verdict').textContent = v.toUpperCase();
+    $('verdict').className = 'verdict ' + v;
+    $('conf').textContent = `confidence ${conf}%`;
+    const pf = (d.probs.fake * 100), pr = (d.probs.real * 100);
+    $('pf').textContent = pf.toFixed(1) + '%'; $('bf').style.width = pf + '%';
+    $('pr').textContent = pr.toFixed(1) + '%'; $('br').style.width = pr + '%';
+    $('result').hidden = false;
+    $('cambox').innerHTML = '';
+    const cam = document.createElement('img'); cam.src = d.gradcam_png;
+    $('cambox').appendChild(cam);
+    $('status').textContent = 'Done.';
+  } catch (err) {
+    $('status').textContent = 'Error: ' + err.message +
+      ' — is the server running and the model loaded?';
+  } finally {
+    $('go').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

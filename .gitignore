@@ -1,0 +1,53 @@
+# ============ Secrets & local data (NEVER COMMIT) ============
+.env
+.env.local
+.env.*.local
+**/.env.local
+**/.env.*.local
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data.db
+
+# ============ Python ============
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ============ Node / Next.js ============
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-error.log*
+
+# ============ Datasets & caches (too large for git) ============
+# Raw dataset lives outside the repo (C:/CapstoneData) and must not be committed
+real_vs_fake/
+*.zip
+clip_features_cache/
+
+# ============ OS / editor ============
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ============ AI assistant scaffolding ============
+CLAUDE.md
+AGENTS.md
+**/CLAUDE.md
+**/AGENTS.md
+
+# ============ Misc ============
+*.log

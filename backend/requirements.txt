@@ -1,0 +1,12 @@
+# Install PyTorch with CUDA first (matches your Colab/local setup):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision
+timm
+transformers
+pillow
+numpy
+matplotlib
+fastapi
+uvicorn[standard]
+python-multipart
